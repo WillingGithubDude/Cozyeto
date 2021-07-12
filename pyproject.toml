@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "repl_python3_Discord-bot"
+name = "repl_python3_Cozyeto"
 version = "0.1.0"
 description = ""
 authors = ["Replit user <replituser@example.com>"]
@@ -8,6 +8,7 @@ authors = ["Replit user <replituser@example.com>"]
 python = "^3.8"
 flask = "^2.0.1"
 discord = "^1.0.1"
+googletrans = "^3.0.0"
 
 [tool.poetry.dev-dependencies]
 
