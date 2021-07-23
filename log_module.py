@@ -82,19 +82,6 @@ class Logging_List(commands.Cog):
       await update_invites(member.guild)
 #823081523544195073 or 
 
-
-    @commands.Cog.listener()
-    async def on_guild_channel_update(self, before, after):
-      if before.category.id == 863978081697267732:
-        for obj in after.overwrites:
-          perms = after.overwrites_for(obj)
-          if perms.mention_everyone != False:
-            perms.mention_everyone = False
-            await after.set_permissions(obj, overwrite=perms)
-          if perms.create_instant_invite != False:
-            perms.mention_everyone = False
-            await after.set_permissions(obj, overwrite=perms)
-
     @commands.Cog.listener()
     async def on_message(self, message):
       if message.channel.id == quotechannel:

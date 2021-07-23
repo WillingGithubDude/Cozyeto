@@ -1,8 +1,8 @@
-from keep_alive import keep_alive
 import discord 
 import os
 import json
 from discord.ext import commands
+from keep_alive import keep_alive
 
 intents = discord.Intents.default()
 allowed_mentions = discord.AllowedMentions(everyone=False, roles=False)
@@ -14,12 +14,13 @@ token = os.environ.get("DISCORD_BOT_SECRET")
 bot.load_extension("commands")
 bot.load_extension("log_module")
 bot.load_extension("modmail_module")
+bot.load_extension("reddit-commands")
 
 @bot.command(name="reload", description="Reloads a cog", usage="eto reload (cog name)")
 @commands.has_permissions(administrator=True)
 async def reload(ctx, cog=None):
   if cog==None:
-      for extension in bot.extensions:
+      for extension in bot.extensions.copy():
         bot.reload_extension(extension)
       await ctx.send("Reloaded cozyeto")
       print("Reloaded cozyeto")
@@ -27,6 +28,7 @@ async def reload(ctx, cog=None):
       bot.reload_extension(cog)
       await ctx.send("Done")
       print(f"Reloaded {cog}")
+
 
 @reload.error
 async def reload_error(ctx, error):

@@ -1,20 +1,19 @@
+import os
 import asyncio
 import discord
 import time
 import random
 import datetime
 import re
-import os
 import json
-import tracemalloc
 from PIL import Image
 from io import BytesIO
 from discord import File
 from discord.ext import commands
 from datetime import timedelta, datetime
 
+
 permissions_error = 'You are not allowed to use this command!'
-tracemalloc.start()
 
 logchannel = 815379976047296542
 botchannel = 798771440660906005
@@ -382,13 +381,17 @@ class Miscellaneous(commands.Cog):
         self.bot = bot
 
     @commands.command(name="help", description="Shows this message", usage="eto help (command)\nCommand argument is optional")
-    async def help(self, ctx, command=None):
-      if command != None:
-        command=self.bot.get_command(command)
-        if command==None:
+    async def help(self, ctx, *, decorator=None):
+      if decorator != None:
+        decorator=self.bot.get_command(decorator)
+        if decorator==None:
           return await ctx.send("That's not a valid command")
-        embed=discord.Embed(title=command.name.capitalize(), description=command.description)
-        embed.add_field(name="Usage", value=command.usage)
+        embed=discord.Embed(title=decorator.name.capitalize(), description=decorator.description)
+        embed.add_field(name="Usage", value=decorator.usage)
+        if isinstance(decorator, discord.ext.commands.Group):
+          embed.add_field(name="Subcommands", value=", ".join([command.name for command in decorator.commands]))
+        if decorator.aliases:
+          embed.add_field(name="Aliases", value=", ".join(decorator.aliases))
       else:
         dev=self.bot.get_user(837555094404333608)
         embed=discord.Embed(title="Commands", description="Here is a list of commands for cozyeto, type 'eto help' on a command for more info on that command'")
