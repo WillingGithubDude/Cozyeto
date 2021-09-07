@@ -1,0 +1,42 @@
+{
+  "files": {
+    "commands.py": [
+      {
+        "id": "9ffb3368-d3b8-4a6b-9605-8839e5a0be89",
+        "line": 11,
+        "version": 11928,
+        "index": 165
+      }
+    ],
+    "extensions/fun_commands.py": [
+      {
+        "id": "ba680a09-e697-4585-a3eb-20fc861cc440",
+        "line": 19,
+        "version": 673,
+        "index": 394
+      }
+    ],
+    "log.py": [
+      {
+        "id": "7016f2bd-8e59-47f2-8307-a928284dfe51",
+        "line": 231,
+        "version": 1146,
+        "index": 9468
+      }
+    ],
+    "main.py": [
+      {
+        "id": "e5377157-8606-4952-ad97-78873aed0b88",
+        "line": 3,
+        "version": 26779,
+        "index": 36
+      },
+      {
+        "id": "41bc1ec3-d86c-4e79-9d9d-3cafb33d7253",
+        "line": 9,
+        "version": 26779,
+        "index": 155
+      }
+    ]
+  }
+}

@@ -1,8 +1,8 @@
 import discord
 import time
 import datetime
-import json
 import os
+import pymongo
 from discord.utils import get
 from discord.ext import commands
 from discord import File
@@ -12,44 +12,17 @@ logchannel = 815379976047296542
 guildID=786436071961395208
 mailcategory=831691345894703144
 
-async def open_blacklist(user):
-  users = await get_blacklist_data()
-  if str(user.id) in users:
-    return False
-  else:
-    users[int(user.id)] = {}
-    users[int(user.id)]["blacklist"] = 0
-  with open("data/blacklist.json","w") as f:
-    json.dump(users,f)
-  return True
+cluster = pymongo.MongoClient(os.environ['Mongo-DB-secret'])
+db = cluster["discord"]
+black_list = db["blacklist"]
 
 
-async def get_blacklist(user):    
-    await open_blacklist(user)
-    users = await get_blacklist_data()
-    wallet_amt = users[str(user.id)]['blacklist']
-    return wallet_amt
-
-
-async def get_blacklist_data():
-  with open("data/blacklist.json") as f:
-    users = json.load(f)
-  return users
-
-async def add_blacklist(user):   
-    await open_blacklist(user)   
-    users = await get_blacklist_data()
-    users[str(user.id)]['blacklist'] += 1
-    with open("data/blacklist.json","w") as f:
-        json.dump(users, f)
-
-
-async def remove_blacklist(user):    
-    await open_blacklist(user)    
-    users = await get_blacklist_data()
-    users[str(user.id)]['blacklist'] -= 1
-    with open("data/blacklist.json","w") as f:
-        json.dump(users, f)
+async def get_user(member):
+  user = black_list.find_one({"_id": member.id})
+  if user == None:
+    black_list.insert_one({"_id": member.id, "blacklist": False})
+    user = black_list.find_one({"_id": member.id})
+  return user
 
 
 class ModMail(commands.Cog):
@@ -59,42 +32,38 @@ class ModMail(commands.Cog):
         self.bot = bot
 
 
-    @commands.command(name="blacklist", description="Blacklists a user", usage="eto blacklist (user)")
+    @commands.command(name="blacklist", description="Blacklists a user")
     @commands.has_permissions(kick_members=True)
-    async def blacklist(self, ctx, user:discord.Member):
-        if await get_blacklist(user) == 0:
-          await add_blacklist(user)
-          await ctx.send(f"{user} has been blacklisted")
+    async def blacklist(self, ctx, member: discord.Member):
+        user = await get_user(member)
+        if user["blacklist"] == False:
+          black_list.delete_one(user)
+          black_list.insert_one({"_id": member.id, "blacklist": True})
+          await ctx.send(f"{member} has been blacklisted")
         else:
-          await ctx.send("The person is already blacklisted.")
+          await ctx.send("The person is already blacklisted")
 
-    @commands.command(name="whitelist", description="Whitelists a user", usage="eto whitelist (user)")
+    @commands.command(name="whitelist", description="Whitelists a user")
     @commands.has_permissions(kick_members=True)
-    async def whitelist(self, ctx, user:discord.Member):
-        if await get_blacklist(user) != 0:
-          await remove_blacklist(user)
-          await ctx.send(f"{user} has been whitelisted")
+    async def whitelist(self, ctx, member:discord.Member):
+        user = await get_user(member)
+        if user["blacklist"] == True:
+          black_list.delete_one(user)
+          black_list.insert_one({"_id": member.id, "blacklist": False})
+          await ctx.send(f"{member} has been whitelisted")
         else:
-          await ctx.send("That user is already whitelisted.")
+          await ctx.send("That user is already whitelisted")
 
 
-    @commands.command(name="viewblacklist", description="Shows the list of blacklisted members", usage="eto viewblacklist")
+    @commands.command(name="viewblacklist", description="Shows the list of blacklisted members")
     @commands.has_permissions(kick_members=True)
     async def viewblacklist(self, ctx):
-      msg=await ctx.send("Please wait a moment...")
-      theblacklist=[]
-      for user in ctx.guild.members:
-        if await get_blacklist(user) != 0:
-          theblacklist.append(user.mention)
-      if theblacklist == []:
-        embed= discord.Embed(title="Blacklisted users", description="",colour=discord.Colour.blue(), timestamp=datetime.now())
-        await msg.delete()
-        await ctx.send(embed=embed)
-      else:
-        blacklist='\n'.join(theblacklist)
-        embed= discord.Embed(title="Blacklisted users", description=blacklist,colour=discord.Colour.blue(), timestamp=datetime.now())
-        await msg.message.delete
-        await ctx.send(embed=embed)
+      blacklist=[]
+      for result in black_list.find():
+        if result["blacklist"] == True:
+          blacklist.append(f"<@!{result['_id']}>")
+      embed = discord.Embed(title="Blacklisted users", description="\n".join(blacklist),colour=discord.Colour.blue(), timestamp=datetime.now())
+      await ctx.send(embed=embed)
 
 
     @commands.Cog.listener()
@@ -107,8 +76,8 @@ class ModMail(commands.Cog):
 
       if str(message.channel.type) == "private":
         if message.author != self.bot.user:
-          if await get_blacklist(message.author) != 0:
-            await message.author.send(f"You have been blacklisted from this guild.")
+          if await get_user(message.author)["blacklist"] == True:
+            await message.author.send(f"You are blacklisted from this guild")
           else:
             c=None
             for channel in category.channels:
@@ -131,11 +100,12 @@ class ModMail(commands.Cog):
 
       elif message.channel.category==category:
         if message.author != self.bot.user:
-          person=get(guild.members, id=int(message.channel.topic))
+          person=message.guild.get_member(int(message.channel.topic))
+          if person == None:
+            return await message.channel.send("Member not found")
           
-          if message.content.startswith("eto close") or message.content.startswith("eto areply") or message.content.startswith("eto aclose") or message.content.startswith("="):
-              pass
-          else:
+          ctx = await self.bot.get_context(message)
+          if ctx.valid == False and message.content.startswith("=") == False:
             try:
               embed=discord.Embed(title=f"Message sent", description= message.content,colour=discord.Colour.green(), timestamp=datetime.now())
               embed.set_author(name=message.author, icon_url=message.author.avatar_url)
@@ -154,12 +124,12 @@ class ModMail(commands.Cog):
               await message.channel.send("User not found")
 
 
-    @commands.command(name="close", description="Closes a ticket", usage="eto close (reason)")
+    @commands.command(name="close", description="Closes a ticket")
     @commands.has_permissions(kick_members=True)
     async def close(self, ctx, *, reason="No reason provided"):
       logs=self.bot.get_channel(logchannel)
       if ctx.channel.category.id == mailcategory:
-          user=get(ctx.guild.members, id=int(ctx.channel.topic))
+          user= ctx.guild.get_member(int(ctx.channel.topic))
           await ctx.send("Closing...")
           logcontent=[]
           async for message in ctx.channel.history(limit=None, oldest_first=True):

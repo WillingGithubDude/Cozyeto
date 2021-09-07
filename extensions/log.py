@@ -1,7 +1,5 @@
 import discord
-import json
 from datetime import datetime
-from discord.utils import get
 from discord.ext import commands
 
 logchannel = 815379976047296542
@@ -18,19 +16,33 @@ quotechannel = 825522469749784587
 Notification = 823079511109271582
 NSFW = 823079403901681712
 Minecraft = 824500410596196392
-Singaporian = 823059666925518868
+Singaporean = 873388307147526156
 ThirdClass = 823068271765880833
 PingMe = 846957184637075517
-
-
-async def update_invites(guild):
-  with open ("data/invites.json") as f:
-    data = json.load(f)
-  invite_list = await guild.invites()
-  for invite in invite_list:
-    data[str(invite.code)] = invite.uses
-  with open ("data/invites.json", "w") as f:
-    json.dump(data, f)
+guild_ids = {
+        786436071961395208: {
+          873389324081717359: {
+            "ping": {
+              PingMe
+              },
+            "⛏️": {
+              Minecraft
+              },
+            "📰": {
+              Notification
+              },
+            "🔞": {
+              NSFW
+              }
+          },
+          873402098404978748: {
+            "cozyeto": {
+              Singaporean,
+              ThirdClass
+              }
+          }
+        }
+      } #guild -> message -> emoji -> role
 
 
 class Logging_List(commands.Cog):
@@ -41,32 +53,14 @@ class Logging_List(commands.Cog):
 
 
     @commands.Cog.listener()
-    async def on_invite_create(self, invite):
-      await update_invites(invite.guild)
-
-
-    @commands.Cog.listener()
     async def on_member_join(self, member: discord.Member):
         channel = self.bot.get_channel(joinchannel)
-        guild = member.guild
         if member.id != 798974970801815552:
           await channel.send(f"Welcome to the server {member.mention} <:cozyeto:821564618577149982>!")
-        with open("data/invites.json") as f:
-          data = json.load(f)
-        for old_invite in data:
-          new_invite = await self.bot.fetch_invite(url = f"discord.gg/{old_invite}")
-          if old_invite in await guild.invites():
-            if data[old_invite] < new_invite.uses:
-              code = old_invite
-              break
-          else:
-            code = old_invite
-            break
-        embed= discord.Embed(title= f"{member} joined the server!", description=f"Invited by {new_invite.inviter.mention} with discord.gg/{code}", colour=discord.Colour.teal(), timestamp=datetime.now())
+        embed= discord.Embed(title= "Member joined", description=f"{member} joined the server!", colour=discord.Colour.teal(), timestamp=datetime.now())
         embed.set_footer(text=member.id)
         embed.set_author(name=member, icon_url= member.avatar_url)
         await self.bot.get_channel(logchannel).send(embed=embed)
-        await update_invites(guild)
   
 
 
@@ -77,9 +71,8 @@ class Logging_List(commands.Cog):
       embed= discord.Embed(title=f"{member} left the server!", description=" ", colour=discord.Colour.dark_orange(),
       timestamp=datetime.now())
       embed.set_footer(text=member.id)
-      embed.set_author(name=member, icon_url= member.avatar_url)   
+      embed.set_author(name=member, icon_url= member.avatar_url)
       await self.bot.get_channel(logchannel).send(embed=embed)
-      await update_invites(member.guild)
 #823081523544195073 or 
 
     @commands.Cog.listener()
@@ -87,14 +80,15 @@ class Logging_List(commands.Cog):
       if message.channel.id == quotechannel:
         if not message.attachments:
           await message.delete()
-      if message.channel.category:
-        if message.channel.category.id not in [823077495049420810, 823081523544195073]:
-          if "fag" in message.content:
-            try:
-              await message.author.send("You have been kicked from Singapore: Slur usage")
-            except:
-              pass
-            await message.author.kick(reason="slur")
+      if isinstance(message.channel, discord.abc.GuildChannel):
+        if message.channel.category:
+          if message.channel.category.id not in [823077495049420810, 823081523544195073]:
+            if "fag" in message.content:
+              try:
+                await message.author.send("You have been kicked from Singapore: Slur usage")
+              except:
+                pass
+              await message.author.kick(reason="slur")
 
 
     @commands.Cog.listener()
@@ -130,14 +124,16 @@ class Logging_List(commands.Cog):
             image = await attachment.to_file()
             files.append(image)
             await betterlog.send(file=image)
-          await logging.send(embed=embed, files=files)
+          if message.guild.id != 843624966174933029:
+            await logging.send(embed=embed, files=files)
         if message.embeds:
           embeds=[]
           for embed1 in message.embeds:
             embeds.append(f"Title: {embed1.title}\nDescription: {embed1.description}")
           embeds="\n".join(embeds)
           embed.add_field(name="Embeds", value=embeds, inline=False)
-        await logging.send(embed=embed)
+        if message.guild.id != 843624966174933029:
+          await logging.send(embed=embed)
         await logging2.send(embed=embed)
 
 
@@ -154,12 +150,7 @@ class Logging_List(commands.Cog):
         embed2.set_image(url=after.avatar_url)
         embed2.set_footer(text=after.id)
         await logs.send(embed=embed2)
-      if before.name != after.name:
-        embed=discord.Embed(title=f"Username updated", description=f"**Before**: {before.name}#{before.discriminator}\n**After**: {after.name}#{after.discriminator}" ,colour=discord.Colour.blurple(), timestamp=datetime.now())
-        embed.set_author(name=after, icon_url=after.avatar_url)
-        embed.set_footer(text=after.id)
-        await logs.send(embed=embed)
-      if before.discriminator != after.discriminator:
+      if before.name + before.discriminator != after.name + after.discriminator:
         embed=discord.Embed(title=f"Username updated", description=f"**Before**: {before.name}#{before.discriminator}\n**After**: {after.name}#{after.discriminator}" ,colour=discord.Colour.blurple(), timestamp=datetime.now())
         embed.set_author(name=after, icon_url=after.avatar_url)
         embed.set_footer(text=after.id)
@@ -176,53 +167,35 @@ class Logging_List(commands.Cog):
         await logs.send(embed=embed)
 
     @commands.Cog.listener()
-    async def on_raw_reaction_add(self, payload=None):
-        guild = discord.utils.get(self.bot.guilds, id=guildID)
-        role = guild.get_role(Notification)
-        role2 = guild.get_role(NSFW)
-        role3 = guild.get_role(Minecraft)
-        role4 = guild.get_role(PingMe)
-        singaporian = guild.get_role(Singaporian)
-        thirdclass = guild.get_role(ThirdClass)
-        if payload is not None:
-            if payload.message_id==msgID:
-                if str(payload.emoji)=="<:cozyluna:786789373735469066>":
-                    await payload.member.add_roles(role)
-                elif str(payload.emoji)=="<:cozyeto:786789349253447690>":
-                    await payload.member.add_roles(role2)
-                elif str(payload.emoji) =="<:uncozyeto:805915542702653440>":
-                    await payload.member.add_roles(role3)
-            if payload.message_id==msgID2:
-                if str(payload.emoji)=="<:cozyeto:786789349253447690>":
-                    await payload.member.add_roles(singaporian)
-                    await payload.member.add_roles(thirdclass)
-            elif payload.message_id==msgID3:
-              await payload.member.add_roles(role4)
+    async def on_raw_reaction_add(self, payload):
+      for guild_id in guild_ids:
+        if payload.guild_id == guild_id:
+          for message_id in guild_ids[guild_id]:
+            if payload.message_id == message_id:
+              for emoji in guild_ids[guild_id][message_id]:
+                if payload.emoji.name == emoji:
+                  guild = self.bot.get_guild(guild_id)
+                  roles = {guild.get_role(role) for role in guild_ids[guild_id][message_id][emoji]}
+                  return await payload.member.add_roles(*roles)
 
     @commands.Cog.listener()
-    async def on_raw_reaction_remove(self, payload=None):
-        guild = discord.utils.get(self.bot.guilds, id=guildID)
-        role = guild.get_role(Notification)
-        role2 = guild.get_role(NSFW)
-        role3= guild.get_role(Minecraft)
-        role4 = guild.get_role(PingMe)
-        user = get(guild.members, id=payload.user_id)
-        if payload is not None:
-            if payload.message_id == msgID:
-                if str(payload.emoji)=="<:cozyluna:821565371865366570>":
-                    await user.remove_roles(role)
-                elif str(payload.emoji)=="<:cozyeto:821564618577149982>":
-                    await user.remove_roles(role2)
-                elif str(payload.emoji) =="<:uncozyeto:805915542702653440>":
-                    await user.remove_roles(role3)
-            elif payload.message_id == msgID3:
-                await user.remove_roles(role4)
+    async def on_raw_reaction_remove(self, payload):
+      for guild_id in guild_ids:
+        if payload.guild_id == guild_id:
+          for message_id in guild_ids[guild_id]:
+            if payload.message_id == message_id:
+              for emoji in guild_ids[guild_id][message_id]:
+                if payload.emoji.name == emoji:
+                  guild = self.bot.get_guild(guild_id)
+                  roles = {guild.get_role(role) for role in guild_ids[guild_id][message_id][emoji]}
+                  member = guild.get_member(payload.user_id)
+                  return await member.remove_roles(*roles)
 
 
 
-#---------------------------------------------------------------------
-#---------------------------END COG HERE------------------------------
-#---------------------------------------------------------------------
+#----------------------------------------------------------------
+#------------------------END COG HERE----------------------------
+#----------------------------------------------------------------
 
 
 def setup(bot: commands.Bot):
